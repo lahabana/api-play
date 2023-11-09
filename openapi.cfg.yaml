@@ -1,0 +1,6 @@
+package: api
+output: pkg/api/openapi.gen.go
+generate:
+  - gin-server
+  - types
+  - models

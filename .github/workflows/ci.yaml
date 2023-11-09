@@ -1,0 +1,67 @@
+name: ci
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          cache: false
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v3
+        with:
+          args: --fix=false --verbose
+          version: v1.54.1
+      - run:
+          go mod tidy
+          go generate ./...
+          # Fail if something changed
+          [[ $(git --no-pager diff | wc -l) -gt 0 ]] && exit 1
+      - run:
+          go test ./...
+      - run:
+          go build ./...
+  build-openapi-tool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - id: buildx
+        uses:
+          docker/setup-buildx-action@v3
+      - if: true #github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: ghcr.io/${{github.repository_owner}}/api-play
+          labels: |
+            org.opencontainers.image.title=lahabana api-play
+            org.opencontainers.image.description=An api to play with APIs :)
+          # Docker tags based on the following events/attributes
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=sha
+      - uses: docker/build-push-action@v5
+        with:
+          context: openapi-tool
+          platforms: linux/amd64,linux/arm64
+          push: true #${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: Dockerfile

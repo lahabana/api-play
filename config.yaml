@@ -1,0 +1,37 @@
+apis:
+  # A simple call that adds random latency to each call
+  - path: with_latency
+    conf:
+      latency:
+        min_millis: 200
+        max_millis: 400
+      body: I have latency
+  # A call that fails sometimes
+  - path: with_failure
+    conf:
+      body: I can fail
+      statuses:
+        - code: 404
+          ratio: 20000
+        - code: 500
+          ratio: 20000
+        - code: 400
+          ratio: 20000
+  # A call which makes calls to other apis
+  - path: with_sub_calls
+    conf:
+      body: I called others
+      latency:
+        max_millis: 100
+      statuses:
+        - code: 400
+          ratio: 20000
+        - code: inherit
+          ratio: 40000
+      call:
+        - url: https://httpbin.org/get
+        - url: https://httpbin.org/get
+          trim_body: true
+        - url: https://httpbin.org/status/200
+        - url: https://httpbin.org/status/500
+          ignore_status: true

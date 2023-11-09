@@ -1,0 +1,277 @@
+openapi: "3.0.3"
+info:
+  version: 1.0.0
+  title: Kuma API Play
+  license:
+    name: MIT
+  description: A simple API to play with APIs and Service Meshes
+  contact:
+    email: charly.molter@konghq.com
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: base
+  - name: api
+paths:
+  /health:
+    get:
+      tags: ["base"]
+      summary: healthcheck
+      description: healthcheck
+      operationId: health
+      responses:
+        default:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+    post:
+      tags: ["base"]
+      summary: change healthcheck response
+      description: change healthcheck response
+      operationId: degradeHealth
+      requestBody:
+        description: Modify the healthcheck
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  example: 200
+                  type: number
+                  x-go-type: int
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: "bad state"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /:
+    get:
+      tags: ["base"]
+      summary: home
+      description: home
+      operationId: home
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeResponse'
+
+  /api/dynamic:
+    get:
+      tags: ["api"]
+      summary: "list all apis registered"
+      description: "list all apis registered"
+      operationId: ParamsApi
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParamsAPI'
+  /api/dynamic/{path}:
+    parameters:
+      - in: path
+        name: path
+        schema:
+          type: string
+        required: true
+        description: path of the api
+    get:
+      tags: ["api"]
+      summary: hello
+      description: hello
+      operationId: getApi
+      responses:
+        '200':
+          description: "OK response"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+    post:
+      tags: ["api"]
+      summary: set api params
+      description: set api params
+      operationId: configureApi
+      requestBody:
+        description: Post request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigureAPI'
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigureAPIItem'
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [status, details]
+      properties:
+        status:
+          type: number
+        details:
+          type: string
+        invalid_parameters:
+          type: array
+          x-oapi-codegen-extra-tags:
+            yaml: invalid_parameters
+          items:
+            $ref: '#/components/schemas/InvalidParameters'
+    InvalidParameters:
+      type: object
+      required: [field, reason]
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: number
+          x-go-type: int
+    HomeResponse:
+      type: object
+      required: [ version, hostname ]
+      properties:
+        version:
+          type: string
+        hostname:
+          type: string
+    APIResponse:
+      type: object
+      required: [body, latency_millis, status, calls]
+      properties:
+        body:
+          type: string
+        latency_millis:
+          type: number
+          x-go-type: int
+          x-oapi-codegen-extra-tags:
+            yaml: latency_millis
+        status:
+          type: number
+          x-go-type: int
+        calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/CallOutcome'
+    ParamsAPI:
+      type: object
+      required: [apis]
+      properties:
+        apis:
+          type: array
+          items:
+              $ref: '#/components/schemas/ConfigureAPIItem'
+    ConfigureAPIItem:
+      type: object
+      required: [path, conf]
+      properties:
+        path:
+          type: string
+        conf:
+          $ref: '#/components/schemas/ConfigureAPI'
+    ConfigureAPI:
+      type: object
+      required: [body, call, statuses]
+      properties:
+        body:
+          type: string
+          description: "The content to return in the response"
+        latency:
+          $ref: '#/components/schemas/LatencyDef'
+        statuses:
+          type: array
+          description: |
+            The status codes to return, it will return with the probability passed in, 
+            If the sum of the ratio of the entries doesn't add to 100000 it will complete with the status 
+            of the children calls or 200 if there were no children calls
+          items:
+            $ref: '#/components/schemas/StatusDef'
+        call:
+          type: array
+          items:
+            $ref: '#/components/schemas/CallDef'
+    LatencyDef:
+      type: object
+      required: [min_millis, max_millis]
+      description: "Extra latency to pick from a uniform distribution to add to this call"
+      properties:
+        min_millis:
+          type: number
+          x-go-type: int
+          x-oapi-codegen-extra-tags:
+            yaml: min_millis
+        max_millis:
+          type: number
+          x-go-type: int
+          x-oapi-codegen-extra-tags:
+            yaml: max_millis
+    StatusDef:
+      type: object
+      required: [code, ratio]
+      properties:
+        code:
+          type: string
+          description: The status code to return. `inherit` is a special key that will return whatever `call` leads to
+        ratio:
+          type: number
+          description: The proportion of the requests out of 10k that should return this status
+          minimum: 0
+          maximum: 100000
+          x-go-type: int
+    CallDef:
+      type: object
+      description: "a list of urls that we'd call get on"
+      required: [url, trim_body, ignore_status]
+      properties:
+        url:
+          type: string
+        trim_body:
+          default: false
+          description: don't include the response body in the response of the parent API
+          type: boolean
+          x-oapi-codegen-extra-tags:
+            yaml: trim_body
+        ignore_status:
+          default: false
+          description: don't consider the status code when using `inherit`
+          type: boolean
+          x-oapi-codegen-extra-tags:
+            yaml: ignore_status
+    CallOutcome:
+      type: object
+      required: [url, status]
+      properties:
+        url:
+          type: string
+        status:
+          type: number
+          x-go-type: int
+        body:
+          type: string
