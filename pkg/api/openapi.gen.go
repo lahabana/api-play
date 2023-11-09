@@ -64,8 +64,8 @@ type ErrorResponse struct {
 	Status            float32              `json:"status"`
 }
 
-// HealthResponse defines model for HealthResponse.
-type HealthResponse struct {
+// Health defines model for Health.
+type Health struct {
 	Status int `json:"status"`
 }
 
@@ -103,16 +103,14 @@ type StatusDef struct {
 	Ratio int `json:"ratio"`
 }
 
-// DegradeHealthJSONBody defines parameters for DegradeHealth.
-type DegradeHealthJSONBody struct {
-	Status int `json:"status"`
-}
-
 // ConfigureApiJSONRequestBody defines body for ConfigureApi for application/json ContentType.
 type ConfigureApiJSONRequestBody = ConfigureAPI
 
 // DegradeHealthJSONRequestBody defines body for DegradeHealth for application/json ContentType.
-type DegradeHealthJSONRequestBody DegradeHealthJSONBody
+type DegradeHealthJSONRequestBody = Health
+
+// DegradeReadyJSONRequestBody defines body for DegradeReady for application/json ContentType.
+type DegradeReadyJSONRequestBody = Health
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -134,6 +132,12 @@ type ServerInterface interface {
 	// change healthcheck response
 	// (POST /health)
 	DegradeHealth(c *gin.Context)
+	// healthcheck
+	// (GET /ready)
+	Ready(c *gin.Context)
+	// change healthcheck response
+	// (POST /ready)
+	DegradeReady(c *gin.Context)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -245,6 +249,32 @@ func (siw *ServerInterfaceWrapper) DegradeHealth(c *gin.Context) {
 	siw.Handler.DegradeHealth(c)
 }
 
+// Ready operation middleware
+func (siw *ServerInterfaceWrapper) Ready(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.Ready(c)
+}
+
+// DegradeReady operation middleware
+func (siw *ServerInterfaceWrapper) DegradeReady(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DegradeReady(c)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -278,4 +308,6 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/api/dynamic/:path", wrapper.ConfigureApi)
 	router.GET(options.BaseURL+"/health", wrapper.Health)
 	router.POST(options.BaseURL+"/health", wrapper.DegradeHealth)
+	router.GET(options.BaseURL+"/ready", wrapper.Ready)
+	router.POST(options.BaseURL+"/ready", wrapper.DegradeReady)
 }

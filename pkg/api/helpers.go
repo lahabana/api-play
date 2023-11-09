@@ -18,6 +18,14 @@ func ValidatePath(path string) error {
 	return nil
 }
 
+func (a *Health) Validate() error {
+	r := &api_errors.MultiValidationError{}
+	if a.Status < 0 || a.Status >= 600 {
+		r = r.AddRootedAt("should be positive and < 600", "status")
+	}
+	return r.OrNil()
+}
+
 func (a *ParamsAPI) Validate() error {
 	r := &api_errors.MultiValidationError{}
 	for i, api := range a.Apis {

@@ -13,6 +13,44 @@ tags:
   - name: base
   - name: api
 paths:
+  /ready:
+    get:
+      tags: ["base"]
+      summary: healthcheck
+      description: healthcheck
+      operationId: ready
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+    post:
+      tags: ["base"]
+      summary: change healthcheck response
+      description: change healthcheck response
+      operationId: degradeReady
+      requestBody:
+        description: Modify the healthcheck
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Health'
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          description: "bad state"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /health:
     get:
       tags: ["base"]
@@ -25,7 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/Health'
     post:
       tags: ["base"]
       summary: change healthcheck response
@@ -37,20 +75,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  example: 200
-                  type: number
-                  x-go-type: int
+              $ref: '#/components/schemas/Health'
       responses:
         '200':
           description: "OK"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/Health'
         '500':
           description: "bad state"
           content:
@@ -147,7 +179,7 @@ components:
           type: string
         reason:
           type: string
-    HealthResponse:
+    Health:
       type: object
       required: [status]
       properties:

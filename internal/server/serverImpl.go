@@ -22,10 +22,11 @@ var version = "dev"
 var commit = "dev"
 
 type srv struct {
-	status atomic.Int32
-	apis   atomic.Pointer[map[string]api.ConfigureAPI]
-	rand   *rand.Rand
-	l      *slog.Logger
+	healthStatus atomic.Int32
+	readyStatus  atomic.Int32
+	apis         atomic.Pointer[map[string]api.ConfigureAPI]
+	rand         *rand.Rand
+	l            *slog.Logger
 }
 
 func (s *srv) Reload(ctx context.Context, apis api.ParamsAPI) error {
@@ -166,12 +167,28 @@ func (s *srv) ConfigureApi(c *gin.Context, path string) {
 }
 
 func (s *srv) Health(c *gin.Context) {
-	st := int(s.status.Load())
-	c.PureJSON(st, api.HealthResponse{Status: st})
+	handleHealth(c, &s.healthStatus)
 }
 
 func (s *srv) DegradeHealth(c *gin.Context) {
-	req := api.DegradeHealthJSONRequestBody{}
+	degradeHealth(c, &s.healthStatus)
+}
+
+func (s *srv) Ready(c *gin.Context) {
+	handleHealth(c, &s.readyStatus)
+}
+
+func (s *srv) DegradeReady(c *gin.Context) {
+	degradeHealth(c, &s.readyStatus)
+}
+
+func handleHealth(c *gin.Context, s *atomic.Int32) {
+	st := int(s.Load())
+	c.PureJSON(st, api.Health{Status: st})
+}
+
+func degradeHealth(c *gin.Context, status *atomic.Int32) {
+	req := api.Health{}
 	err := c.Bind(&req)
 	if err != nil {
 		c.PureJSON(http.StatusBadRequest, api.BadRequestResponse(err))
@@ -181,19 +198,21 @@ func (s *srv) DegradeHealth(c *gin.Context) {
 		if st == 0 {
 			st = http.StatusOK
 		}
-		s.status.Store(int32(st))
-		c.PureJSON(http.StatusOK, api.HealthResponse{Status: st})
+		status.Store(int32(st))
+		c.PureJSON(http.StatusOK, api.Health{Status: st})
 	}
 }
 
 func NewServerImpl(l *slog.Logger, seed int64) api.ServerInterface {
 	s := &srv{
-		l:      l.WithGroup("api-server"),
-		status: atomic.Int32{},
-		apis:   atomic.Pointer[map[string]api.ConfigureAPI]{},
-		rand:   rand.New(rand.NewSource(seed)),
+		l:            l.WithGroup("api-server"),
+		healthStatus: atomic.Int32{},
+		readyStatus:  atomic.Int32{},
+		apis:         atomic.Pointer[map[string]api.ConfigureAPI]{},
+		rand:         rand.New(rand.NewSource(seed)),
 	}
-	s.status.Store(http.StatusOK)
+	s.healthStatus.Store(http.StatusOK)
+	s.readyStatus.Store(http.StatusOK)
 	s.apis.Store(&map[string]api.ConfigureAPI{})
 	return s
 }
