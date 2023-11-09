@@ -31,7 +31,6 @@ type srv struct {
 
 func (s *srv) Reload(ctx context.Context, apis api.ParamsAPI) error {
 	apis.Normalize()
-	s.l.InfoContext(ctx, "validation with new config", "config", apis.Apis[0].Conf.Latency)
 	if err := apis.Validate(); err != nil {
 		return err
 	}

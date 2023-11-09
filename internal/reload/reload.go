@@ -34,11 +34,12 @@ func BackgroundConfigReload(ctx context.Context, log *slog.Logger, configFile st
 	if err != nil {
 		panic(err)
 	}
-	if err := w.Add(filepath.Dir(configFile)); err != nil {
+	dirPath := filepath.Dir(configFile)
+	if err := w.Add(dirPath); err != nil {
 		panic(err)
 	}
 	go func() {
-		log.InfoContext(ctx, "listening for config change events")
+		log.InfoContext(ctx, "listening for config change events", "path", dirPath)
 		defer func() {
 			_ = w.Close()
 			log.InfoContext(ctx, "stopping watcher")
