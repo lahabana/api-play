@@ -12,10 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: stoplightio/spectral-action@v0.8.10
         with:
-          node-version: '16.x'
-          registry-url: 'https://registry.npmjs.org'
+          file_glob: openapi.yaml
       - name: lint openapi spec
         run: npx spectral lint 'openapi.yaml'
   check:
@@ -33,13 +32,11 @@ jobs:
       - run: |
           go mod tidy
           go generate ./...
-          git --no-pager diff
-          # Fail if something changed
-          #[[ $(git --no-pager diff | wc -l) -gt 0 ]] && exit 1
       - run:
           go test ./...
-      - run:
-          go build ./...
+      - name: check if diff
+        run: |
+          git diff --no-ext-diff --exit-code
   images:
     needs: [check, lint-api]
     runs-on: ubuntu-latest
