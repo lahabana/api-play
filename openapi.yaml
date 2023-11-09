@@ -20,7 +20,7 @@ paths:
       description: healthcheck
       operationId: health
       responses:
-        default:
+        '200':
           description: "OK"
           content:
             application/json:
