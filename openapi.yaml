@@ -275,5 +275,3 @@ components:
           x-go-type: int
         body:
           type: string
-        bar:
-          type: string
