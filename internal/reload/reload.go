@@ -50,8 +50,8 @@ func BackgroundConfigReload(ctx context.Context, log *slog.Logger, configFile st
 				if !ok {
 					return
 				}
-				log.InfoContext(ctx, "got event", "op", e.Op.String(), "name", e.Name)
-				if e.Name == filepath.Base(configFile) {
+				// For k8s we react to reload of the config map which is similar to a symlink change
+				if e.Name == filepath.Base(configFile) || (filepath.Base(e.Name) == "..data" && e.Has(fsnotify.Create)) {
 					err := reload(ctx, log, configFile, reloader)
 					if err != nil {
 						log.ErrorContext(ctx, "reloading config failed", "error", err)
