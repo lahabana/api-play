@@ -50,8 +50,8 @@ func BackgroundConfigReload(ctx context.Context, log *slog.Logger, configFile st
 				if !ok {
 					return
 				}
+				log.InfoContext(ctx, "got event", "op", e.Op.String(), "name", e.Name)
 				if e.Name == filepath.Base(configFile) {
-					log.InfoContext(ctx, "got event", "op", e.Op.String(), "name", e.Name)
 					err := reload(ctx, log, configFile, reloader)
 					if err != nil {
 						log.ErrorContext(ctx, "reloading config failed", "error", err)
