@@ -11,11 +11,15 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
 )
+
+var version = "dev"
+var commit = "dev"
 
 type srv struct {
 	status atomic.Int32
@@ -43,7 +47,9 @@ func (s *srv) Home(c *gin.Context) {
 	host, _ := os.Hostname()
 	c.PureJSON(http.StatusOK, api.HomeResponse{
 		Hostname: host,
-		Version:  "dev",
+		Version:  version,
+		Commit:   commit,
+		Target:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	})
 }
 

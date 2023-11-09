@@ -71,7 +71,9 @@ type HealthResponse struct {
 
 // HomeResponse defines model for HomeResponse.
 type HomeResponse struct {
+	Commit   string `json:"commit"`
 	Hostname string `json:"hostname"`
+	Target   string `json:"target"`
 	Version  string `json:"version"`
 }
 

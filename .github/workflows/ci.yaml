@@ -33,12 +33,13 @@ jobs:
           go test ./...
       - run:
           mkdir -p build/linux/{arm64,amd64}
-      - name: build-amd64
+      - name: build
         run:
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o build/linux/amd64/api-play
-      - name: build-arm64
-        run:
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -v -o build/linux/arm64/api-play
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=${arch} go build \
+              -ldflags="-X github.com/lahabana/api-play/internal/server.commit=${{ github.sha }} -X github.com/lahabana/api-play/internal/server.version=${{ github.ref_name }}" \
+              -v -o build/linux/${arch}/api-play
+          done
       - name: check if diff
         run: |
           git diff --no-ext-diff --exit-code

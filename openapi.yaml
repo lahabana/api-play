@@ -156,11 +156,15 @@ components:
           x-go-type: int
     HomeResponse:
       type: object
-      required: [ version, hostname ]
+      required: [ version, hostname, commit, target ]
       properties:
         version:
           type: string
         hostname:
+          type: string
+        commit:
+          type: string
+        target:
           type: string
     APIResponse:
       type: object
