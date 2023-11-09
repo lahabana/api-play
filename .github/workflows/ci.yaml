@@ -15,8 +15,6 @@ jobs:
       - uses: stoplightio/spectral-action@v0.8.10
         with:
           file_glob: openapi.yaml
-      - name: lint openapi spec
-        run: npx spectral lint 'openapi.yaml'
   check:
     runs-on: ubuntu-latest
     steps:
