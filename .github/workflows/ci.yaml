@@ -8,6 +8,16 @@ permissions:
   contents: read
   packages: write
 jobs:
+  lint-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: lint openapi spec
+        run: npx spectral lint 'openapi.yaml'
   check:
     runs-on: ubuntu-latest
     steps:
@@ -20,8 +30,6 @@ jobs:
         with:
           args: --fix=false --verbose
           version: v1.54.1
-      - name: lint openapi spec
-        run: npx spectral lint 'openapi.yaml'
       - run: |
           go mod tidy
           go generate ./...
@@ -33,7 +41,7 @@ jobs:
       - run:
           go build ./...
   images:
-    needs: check
+    needs: [check, lint-api]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
