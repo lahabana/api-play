@@ -21,7 +21,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          cache: false
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v3
         with:
