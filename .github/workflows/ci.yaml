@@ -23,13 +23,15 @@ jobs:
       - run: |
           go mod tidy
           go generate ./...
+          git --no-pager diff
           # Fail if something changed
           [[ $(git --no-pager diff | wc -l) -gt 0 ]] && exit 1
       - run:
           go test ./...
       - run:
           go build ./...
-  build-openapi-tool:
+  images:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +61,7 @@ jobs:
             type=sha
       - uses: docker/build-push-action@v5
         with:
-          context: openapi-tool
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true #${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
