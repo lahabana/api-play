@@ -34,7 +34,7 @@ jobs:
       - run:
           mkdir -p build/linux/{arm64,amd64}
       - name: build
-        run:
+        run: |
           for arch in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH=${arch} go build \
               -ldflags="-X github.com/lahabana/api-play/internal/server.commit=${{ github.sha }} -X github.com/lahabana/api-play/internal/server.version=${{ github.ref_name }}" \
