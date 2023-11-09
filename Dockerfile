@@ -3,6 +3,7 @@ ARG TARGETPLATFORM
 
 WORKDIR /
 COPY build/$TARGETPLATFORM/api-play /usr/bin
+CMD chmod u+x /usr/bin/api-play
 
 EXPOSE 8080
 USER nonroot:nonroot
