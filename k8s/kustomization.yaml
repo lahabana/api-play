@@ -1,6 +1,6 @@
 namespace: api-play
 images:
-  - name: ghcr.io/lahabana/api-play
+  - name: ghcr.io/lahabana/api-play:main
     newTag: main
 resources:
   - manifest.yaml

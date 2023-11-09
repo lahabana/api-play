@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/lahabana/api-play
+          image: ghcr.io/lahabana/api-play:main
           imagePullPolicy: Always
           args: [-config-file, /etc/config/config.yaml]
           volumeMounts:
