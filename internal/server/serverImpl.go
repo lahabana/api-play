@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/lahabana/test-api/pkg/api"
+	"github.com/lahabana/api-play/pkg/api"
 	"io"
 	"log/slog"
 	"maps"

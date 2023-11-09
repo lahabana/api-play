@@ -1,4 +1,4 @@
-module github.com/lahabana/test-api
+module github.com/lahabana/api-play
 
 go 1.21.1
 

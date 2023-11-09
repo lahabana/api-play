@@ -20,7 +20,7 @@ jobs:
         with:
           args: --fix=false --verbose
           version: v1.54.1
-      - run:
+      - run: |
           go mod tidy
           go generate ./...
           # Fail if something changed

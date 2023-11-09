@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	api_errors "github.com/lahabana/test-api/pkg/errors"
+	api_errors "github.com/lahabana/api-play/pkg/errors"
 	"net/http"
 	"regexp"
 	"strconv"

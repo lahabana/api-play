@@ -3,7 +3,7 @@ package reload
 import (
 	"context"
 	"github.com/fsnotify/fsnotify"
-	"github.com/lahabana/test-api/pkg/api"
+	"github.com/lahabana/api-play/pkg/api"
 	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
