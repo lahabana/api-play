@@ -32,6 +32,12 @@ spec:
               path: /ready
               port: 8080
             initialDelaySeconds: 3
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "100m"
+            limits:
+              memory: "32Mi"
       volumes:
         - name: config
           configMap:
