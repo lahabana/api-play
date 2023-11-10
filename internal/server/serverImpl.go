@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/lahabana/api-play/internal/version"
 	"github.com/lahabana/api-play/pkg/api"
 	"io"
 	"log/slog"
@@ -17,9 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 )
-
-var version = "dev"
-var commit = "dev"
 
 type srv struct {
 	healthStatus atomic.Int32
@@ -47,8 +45,8 @@ func (s *srv) Home(c *gin.Context) {
 	host, _ := os.Hostname()
 	c.PureJSON(http.StatusOK, api.HomeResponse{
 		Hostname: host,
-		Version:  version,
-		Commit:   commit,
+		Version:  version.Version,
+		Commit:   version.Commit,
 		Target:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	})
 }
