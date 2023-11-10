@@ -16,8 +16,10 @@ import (
 //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -config openapi.cfg.yaml openapi.yaml
 
 type Conf struct {
-	configFile string
-	seed       int64
+	configFile  string
+	seed        int64
+	otlpMetrics string
+	otlpTraces  string
 }
 
 func main() {
@@ -26,8 +28,10 @@ func main() {
 	conf := Conf{}
 	flag.StringVar(&conf.configFile, "config-file", "", "A yaml config of the apis")
 	flag.Int64Var(&conf.seed, "seed", time.Now().UnixMicro(), "Seed for random generators")
+	flag.StringVar(&conf.otlpMetrics, "otlp-metrics", "", "whether or not we should export metrics using otlp (options: http,grpc)")
+	flag.StringVar(&conf.otlpTraces, "otlp-traces", "", "whether or not we should export traces using otlp (options: http,grpc)")
 	flag.Parse()
-	obs, err := observability.Init(ctx, "api-play")
+	obs, err := observability.Init(ctx, "api-play", observability.OTLPFormat(conf.otlpMetrics), observability.OTLPFormat(conf.otlpTraces))
 	if err != nil {
 		panic(err)
 	}

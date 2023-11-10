@@ -9,6 +9,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
@@ -16,10 +20,19 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"os"
 	"time"
+)
+
+type OTLPFormat string
+
+const (
+	OTLPHttp = OTLPFormat("http")
+	OTLPGrpc = OTLPFormat("grpc")
+	OTLPNone = OTLPFormat("")
 )
 
 type Observability interface {
@@ -37,7 +50,7 @@ func (o *obs) Logger() *slog.Logger {
 	return o.l
 }
 
-func Init(ctx context.Context, service string) (Observability, error) {
+func Init(ctx context.Context, service string, metrics OTLPFormat, traces OTLPFormat) (Observability, error) {
 	logLevel := &slog.LevelVar{}
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource: true,
@@ -53,23 +66,70 @@ func Init(ctx context.Context, service string) (Observability, error) {
 	if err != nil {
 		return nil, err
 	}
-	tracingProvider := sdktrace.NewTracerProvider(
+	traceProviderOpts := []sdktrace.TracerProviderOption{
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
-	)
-	metricsExporter, err := prometheus.New()
+	}
+	switch traces {
+	case OTLPHttp:
+		l.InfoContext(ctx, "adding OTLP http to publish traces")
+		traceExporter, err := otlptracehttp.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+		traceProviderOpts = append(traceProviderOpts, sdktrace.WithBatcher(traceExporter))
+	case OTLPGrpc:
+		l.InfoContext(ctx, "adding OTLP grpc to publish traces")
+		traceExporter, err := otlptracegrpc.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+		traceProviderOpts = append(traceProviderOpts, sdktrace.WithBatcher(traceExporter))
+	case OTLPNone:
+		l.InfoContext(ctx, "no OTLP used to publish traces")
+	default:
+		return nil, fmt.Errorf("invalid otlp format for traces: %s valid formats: '', 'grpc' and 'http'", traces)
+	}
+	tracingProvider := sdktrace.NewTracerProvider(traceProviderOpts...)
+	otel.SetTracerProvider(tracingProvider)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	promExporter, err := prometheus.New()
 	if err != nil {
 		return nil, err
 	}
-	metricProvider := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(metricsExporter),
+	metricsProviderOpts := []sdkmetric.Option{
+		sdkmetric.WithReader(promExporter),
 		sdkmetric.WithResource(res),
-	)
+	}
+	switch metrics {
+	case OTLPHttp:
+		l.InfoContext(ctx, "adding OTLP http to publish metrics")
+		metricsOtlpExporter, err := otlpmetrichttp.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+		metricsProviderOpts = append(metricsProviderOpts,
+			sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricsOtlpExporter, sdkmetric.WithInterval(time.Second))),
+		)
+	case OTLPGrpc:
+		l.InfoContext(ctx, "adding OTLP grpc to publish metrics")
+		metricsOtlpExporter, err := otlpmetricgrpc.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+		metricsProviderOpts = append(metricsProviderOpts,
+			sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricsOtlpExporter, sdkmetric.WithInterval(time.Second))),
+		)
+	case OTLPNone:
+		l.InfoContext(ctx, "no OTLP used to publish metrics")
+	default:
+		return nil, fmt.Errorf("invalid otlp format for traces: %s valid formats: '', 'grpc' and 'http'", traces)
+	}
+	metricProvider := sdkmetric.NewMeterProvider(metricsProviderOpts...)
 	otel.SetMeterProvider(metricProvider)
-	otel.SetTracerProvider(tracingProvider)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-	o := &obs{tp: tracingProvider, l: l, service: service}
 
+	o := &obs{tp: tracingProvider, l: l, service: service}
 	go func() {
 		<-ctx.Done()
 		l.InfoContext(ctx, "Shutting down observability")
