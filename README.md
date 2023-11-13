@@ -1,9 +1,14 @@
 # ApiOpsDemo
 
+[![Run in Insomnia}](https://insomnia.rest/images/run.svg)](https://insomnia.rest/run/?label=lahabana%2Fapi-play&uri=https%3A%2F%2Fraw.githubusercontent.com%2Flahabana%2Fapi-play%2Fmain%2Fopenapi.yaml)
+
+
 A demo service with modifiable APIs for playing with a lot of things.
 You can add latency to an API, errors and call other apis or even make the healthcheck fail.
 
 This is a great way to play with a service mesh like [Kuma](https://kuma.io) for example.
+
+
 
 ## Running it
 
