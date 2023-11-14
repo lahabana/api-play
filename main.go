@@ -5,11 +5,12 @@ import (
 	"flag"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/lahabana/api-play/internal/observability"
 	"github.com/lahabana/api-play/internal/reload"
 	"github.com/lahabana/api-play/internal/server"
 	"github.com/lahabana/api-play/pkg/api"
 	api_errors "github.com/lahabana/api-play/pkg/errors"
+	"github.com/lahabana/otel-gin/pkg/observability"
+	"log/slog"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	flag.StringVar(&conf.otlpMetrics, "otlp-metrics", "", "whether or not we should export metrics using otlp (options: http,grpc)")
 	flag.StringVar(&conf.otlpTraces, "otlp-traces", "", "whether or not we should export traces using otlp (options: http,grpc)")
 	flag.Parse()
-	obs, err := observability.Init(ctx, "api-play", observability.OTLPFormat(conf.otlpMetrics), observability.OTLPFormat(conf.otlpTraces))
+	obs, err := observability.Init(ctx, "api-play", slog.LevelDebug, observability.OTLPFormat(conf.otlpMetrics), observability.OTLPFormat(conf.otlpTraces))
 	if err != nil {
 		panic(err)
 	}
