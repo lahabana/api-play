@@ -11,6 +11,10 @@ import (
 
 var rePath = regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_-]+$")
 
+const (
+	MaxRatio = 100_000
+)
+
 func ValidatePath(path string) error {
 	if !rePath.MatchString(path) {
 		return fmt.Errorf("'%s' doesn't match re: %s", path, rePath.String())
@@ -111,8 +115,8 @@ func (a *ConfigureAPI) Validate() error {
 			merr = merr.AddRootedAt("duplicate status", "statuses", i)
 		}
 	}
-	if total > 100000 {
-		merr = merr.AddRootedAt("sum of ratios can't be greater than 100,000", "statuses")
+	if total > MaxRatio {
+		merr = merr.AddRootedAt(fmt.Sprintf("sum of ratios can't be greater than %d", MaxRatio), "statuses")
 	}
 	return merr.OrNil()
 }

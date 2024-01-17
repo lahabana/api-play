@@ -277,7 +277,7 @@ components:
           description: The status code to return. `inherit` is a special key that will return whatever `call` leads to
         ratio:
           type: number
-          description: The proportion of the requests out of 10k that should return this status
+          description: The proportion of the requests out of 100k that should return this status
           minimum: 0
           maximum: 100000
           x-go-type: int

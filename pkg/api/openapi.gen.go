@@ -99,7 +99,7 @@ type StatusDef struct {
 	// Code The status code to return. `inherit` is a special key that will return whatever `call` leads to
 	Code string `json:"code"`
 
-	// Ratio The proportion of the requests out of 10k that should return this status
+	// Ratio The proportion of the requests out of 100k that should return this status
 	Ratio int `json:"ratio"`
 }
 

@@ -6,11 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lahabana/api-play/internal/version"
 	"github.com/lahabana/api-play/pkg/api"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"io"
 	"log/slog"
 	"maps"
 	"math/rand"
 	"net/http"
+	"net/http/httptrace"
 	"os"
 	"runtime"
 	"sort"
@@ -84,21 +88,7 @@ func (s *srv) GetApi(c *gin.Context, path string) {
 	callStatus := http.StatusOK
 	var calls []api.CallOutcome
 	for _, call := range entry.Call {
-		resp, err := http.Get(call.Url)
-		outcome := api.CallOutcome{
-			Url: call.Url,
-		}
-		if err != nil {
-			outcome.Status = http.StatusInternalServerError
-		} else {
-			outcome.Status = resp.StatusCode
-			if !call.TrimBody {
-				b, _ := io.ReadAll(resp.Body)
-				sb := string(b)
-				outcome.Body = &sb
-			}
-			_ = resp.Body.Close()
-		}
+		outcome := s.call(c.Request.Context(), call)
 		// The worst status from children calls defines the status of type 'inherit'
 		if !call.IgnoreStatus && outcome.Status > callStatus {
 			callStatus = outcome.Status
@@ -177,6 +167,39 @@ func (s *srv) Ready(c *gin.Context) {
 
 func (s *srv) DegradeReady(c *gin.Context) {
 	degradeHealth(c, &s.readyStatus)
+}
+
+func (s *srv) call(ctx context.Context, call api.CallDef) api.CallOutcome {
+	outcome := api.CallOutcome{
+		Url: call.Url,
+	}
+	ctx, span := otel.Tracer("serverImpl").Start(ctx, "service-call")
+	defer span.End()
+	span.SetAttributes(attribute.Key("url").String(call.Url))
+	clientTrace := otelhttptrace.NewClientTrace(ctx)
+	ctx = httptrace.WithClientTrace(ctx, clientTrace)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, call.Url, nil)
+	if err != nil {
+		s.l.ErrorContext(ctx, "failed to create request", "error", err)
+		outcome.Status = http.StatusInternalServerError
+	} else {
+		_, err = http.DefaultClient.Do(req)
+		if err != nil {
+		}
+		resp, err := http.Get(call.Url)
+		if err != nil {
+			outcome.Status = http.StatusInternalServerError
+		} else {
+			outcome.Status = resp.StatusCode
+			if !call.TrimBody {
+				b, _ := io.ReadAll(resp.Body)
+				sb := string(b)
+				outcome.Body = &sb
+			}
+			_ = resp.Body.Close()
+		}
+	}
+	return outcome
 }
 
 func handleHealth(c *gin.Context, s *atomic.Int32) {
