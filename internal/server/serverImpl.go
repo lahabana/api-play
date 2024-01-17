@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"io"
 	"log/slog"
 	"maps"
@@ -176,20 +177,18 @@ func (s *srv) call(ctx context.Context, call api.CallDef) api.CallOutcome {
 	ctx, span := otel.Tracer("serverImpl").Start(ctx, "service-call")
 	defer span.End()
 	span.SetAttributes(attribute.Key("url").String(call.Url))
-	clientTrace := otelhttptrace.NewClientTrace(ctx)
-	ctx = httptrace.WithClientTrace(ctx, clientTrace)
+	ctx = httptrace.WithClientTrace(ctx, otelhttptrace.NewClientTrace(ctx))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, call.Url, nil)
 	if err != nil {
 		s.l.ErrorContext(ctx, "failed to create request", "error", err)
 		outcome.Status = http.StatusInternalServerError
 	} else {
-		_, err = http.DefaultClient.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-		}
-		resp, err := http.Get(call.Url)
-		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			outcome.Status = http.StatusInternalServerError
 		} else {
+			span.SetStatus(codes.Ok, fmt.Sprintf("got http status: %d", resp.StatusCode))
 			outcome.Status = resp.StatusCode
 			if !call.TrimBody {
 				b, _ := io.ReadAll(resp.Body)
